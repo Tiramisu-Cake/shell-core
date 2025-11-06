@@ -8,9 +8,10 @@ fn main() {
         io::stdout().flush().unwrap();
         let mut cmd = String::new();
         io::stdin().read_line(&mut cmd).unwrap();
+        let cmd = cmd.trim().to_owned();
         if cmd == "exit 0" {
             exit(0);
         }
-        println!("{}: command not found", cmd.trim());
+        println!("{}: command not found", cmd);
     }
 }

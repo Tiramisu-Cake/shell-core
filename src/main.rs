@@ -12,6 +12,10 @@ fn main() {
         if cmd == "exit 0" {
             exit(0);
         }
-        println!("{}: command not found", cmd);
+        if cmd.starts_with("echo") {
+            println!("{}", &cmd[5..]);
+        } else {
+            println!("{}: command not found", cmd);
+        }
     }
 }

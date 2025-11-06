@@ -1,5 +1,6 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
+use std::process::exit;
 
 fn main() {
     loop {
@@ -8,8 +9,7 @@ fn main() {
         let mut cmd = String::new();
         io::stdin().read_line(&mut cmd).unwrap();
         if cmd == "exit 0" {
-            println!("Exit with status 0 (success)");
-            break;
+            exit(0);
         }
         println!("{}: command not found", cmd.trim());
     }

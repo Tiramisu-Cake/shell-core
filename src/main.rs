@@ -1,6 +1,12 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use std::process::exit;
+use std::{
+    env::{self, VarError},
+    fs,
+    os::unix::fs::PermissionsExt,
+    path::Path,
+    process::exit,
+};
 
 enum BuiltInCommand {
     Type,
@@ -12,6 +18,9 @@ enum Command {
     External(String),
 }
 
+fn read_path() -> Result<String, VarError> {
+    env::var("PATH")
+}
 fn parse_command(cmd: &str) -> Command {
     match cmd {
         c if c.starts_with("type") => Command::BuiltIn(BuiltInCommand::Type),
@@ -22,7 +31,7 @@ fn parse_command(cmd: &str) -> Command {
 }
 
 fn main() {
-    loop {
+    'outer: loop {
         print!("$ ");
         io::stdout().flush().unwrap();
         let mut input = String::new();
@@ -34,7 +43,22 @@ fn main() {
                     if last_cmd == "echo" || last_cmd == "type" || last_cmd == "exit" {
                         println!("{} is a shell builtin", last_cmd);
                     } else {
-                        println!("{}: not found", last_cmd);
+                        let path = read_path().unwrap();
+                        let paths_dirs: Vec<&str> = path.split(':').collect();
+                        for dir in paths_dirs {
+                            let file = format!("{}/{}", dir, last_cmd);
+                            let file_path = Path::new(&file);
+                            if let Ok(metadata) = fs::metadata(&file_path) {
+                                let exec_rights = metadata.permissions().mode();
+                                if exec_rights & 0o100 != 0 {
+                                    println!("{} is {}", last_cmd, file);
+                                    continue 'outer;
+                                }
+                            } else {
+                                continue;
+                            };
+                        }
+                        println!("{}: command not found", last_cmd);
                     }
                 }
             }

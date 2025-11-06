@@ -38,7 +38,7 @@ fn main() {
                     }
                 }
             }
-            Command::BuiltIn(BuiltInCommand::Echo) => println!("{}", &input[5..]),
+            Command::BuiltIn(BuiltInCommand::Echo) => println!("{}", &input[5..].trim()),
             Command::BuiltIn(BuiltInCommand::Exit) => exit(0),
             Command::External(ext_cmd) => println!("{}: command not found", ext_cmd),
         }

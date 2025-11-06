@@ -58,7 +58,7 @@ fn main() {
                                 continue;
                             };
                         }
-                        println!("{}: command not found", last_cmd);
+                        println!("{}: not found", last_cmd);
                     }
                 }
             }

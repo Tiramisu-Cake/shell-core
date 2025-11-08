@@ -79,6 +79,7 @@ fn execute(config: Config) {
         println!("{}: command not found", cmd);
         return;
     };
+    let file = file.split("/").last().unwrap();
     if let Some(args) = args {
         Command::new(file).args(args.split_whitespace()).status();
     } else {

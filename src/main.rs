@@ -97,10 +97,14 @@ fn pwd_cmd() {
 fn cd_cmd(path: &Option<String>) {
     match path {
         Some(x) => {
-            let cd = set_current_dir(x);
+            let mut path = x.to_string();
+            if path == "~" {
+                path = read_home().unwrap();
+            }
+            let cd = set_current_dir(&path);
             match cd {
                 Ok(()) => (),
-                Err(e) => println!("cd: {}: No such file or directory", x),
+                Err(e) => println!("cd: {}: No such file or directory", path),
             }
         }
         None => (),
@@ -114,6 +118,10 @@ fn is_built(cmd: &str) -> bool {
 
 fn read_path() -> Result<String, VarError> {
     env::var("PATH")
+}
+
+fn read_home() -> Result<String, VarError> {
+    env::var("HOME")
 }
 
 fn main() {

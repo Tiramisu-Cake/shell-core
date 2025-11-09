@@ -1,12 +1,11 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
 use std::{
-    env::{self, VarError},
+    env::{self, current_dir, VarError},
     fs,
     os::unix::fs::PermissionsExt,
     path::Path,
-    process::exit,
-    process::Command,
+    process::{exit, Command},
 };
 
 struct Config {
@@ -87,8 +86,16 @@ fn execute(config: Config) {
     }
 }
 
+fn pwd_cmd() {
+    let wd = current_dir();
+    match wd {
+        Ok(path) => println!("{}", path.display()),
+        Err(e) => println!("aaaaaaa"),
+    }
+}
+
 fn is_built(cmd: &str) -> bool {
-    let built_in = ["echo", "exit", "type"];
+    let built_in = ["echo", "exit", "type", "pwd"];
     return built_in.contains(&cmd);
 }
 
@@ -115,6 +122,7 @@ fn main() {
             "echo" => echo_cmd(&config.args),
             "type" => type_cmd(&config.args),
             "exit" => exit(0),
+            "pwd" => pwd_cmd(),
             _ => execute(config),
         }
     }

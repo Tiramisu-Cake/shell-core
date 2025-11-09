@@ -1,7 +1,7 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
 use std::{
-    env::{self, current_dir, VarError},
+    env::{self, current_dir, set_current_dir, VarError},
     fs,
     os::unix::fs::PermissionsExt,
     path::Path,
@@ -94,8 +94,21 @@ fn pwd_cmd() {
     }
 }
 
+fn cd_cmd(path: &Option<String>) {
+    match path {
+        Some(x) => {
+            let cd = set_current_dir(x);
+            match cd {
+                Ok(()) => (),
+                Err(e) => println!("cd: {}: No such file or directory", x),
+            }
+        }
+        None => (),
+    }
+}
+
 fn is_built(cmd: &str) -> bool {
-    let built_in = ["echo", "exit", "type", "pwd"];
+    let built_in = ["cd", "echo", "exit", "type", "pwd"];
     return built_in.contains(&cmd);
 }
 
@@ -119,6 +132,7 @@ fn main() {
 
         let cmd = &config.cmd;
         match cmd.as_str() {
+            "cd" => cd_cmd(&config.args),
             "echo" => echo_cmd(&config.args),
             "type" => type_cmd(&config.args),
             "exit" => exit(0),

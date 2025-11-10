@@ -56,6 +56,7 @@ pub fn type_cmd(cmd: &Vec<String>) {
         println!("{} is {}", cmd, file);
         return;
     }
+    println!("{}: not found", cmd);
 }
 pub fn pwd_cmd() {
     let wd = current_dir();

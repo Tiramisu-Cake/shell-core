@@ -42,6 +42,20 @@ impl Config {
                 }
                 result.push(str_to_push);
                 str_to_push = String::new();
+            } else if arg == '\"' {
+                str_to_push.push('\"');
+                let mut enough_quotes = false;
+                while let Some(arg) = args.next() {
+                    if arg == '\"' {
+                        enough_quotes = !enough_quotes;
+                    }
+                    if arg == ' ' && enough_quotes {
+                        break;
+                    }
+                    str_to_push.push(arg);
+                }
+                result.push(str_to_push);
+                str_to_push = String::new();
             } else {
                 str_to_push.push(arg);
                 while let Some(arg) = args.next() {
@@ -60,8 +74,10 @@ impl Config {
     fn parse_args(args: Vec<String>) -> Vec<String> {
         let mut new_args: Vec<String> = Vec::new();
         for (i, word) in args.iter().enumerate() {
-            if word.contains("'") {
+            if word.starts_with("'") {
                 new_args.push(word.replace("'", ""));
+            } else if word.starts_with("\"") {
+                new_args.push(word.replace("\"", ""));
             } else {
                 new_args.push(word.clone());
             }

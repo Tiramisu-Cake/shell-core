@@ -76,7 +76,7 @@ impl Config {
         for (i, word) in args.iter().enumerate() {
             if word.starts_with("'") {
                 new_args.push(word.replace("'", ""));
-            } else if word.starts_with("\"") {
+            } else if word.contains("\"") {
                 new_args.push(word.replace("\"", ""));
             } else {
                 new_args.push(word.clone());

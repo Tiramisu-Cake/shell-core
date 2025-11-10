@@ -74,7 +74,7 @@ impl Config {
     fn parse_args(args: Vec<String>) -> Vec<String> {
         let mut new_args: Vec<String> = Vec::new();
         for (i, word) in args.iter().enumerate() {
-            if word.starts_with("'") {
+            if word.starts_with("'") || word.contains("''") {
                 new_args.push(word.replace("'", ""));
             } else if word.contains("\"") {
                 new_args.push(word.replace("\"", ""));

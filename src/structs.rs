@@ -1,4 +1,4 @@
-use crate::parser::*;
+use crate::parser2::*;
 
 pub struct Config {
     pub cmd: String,
@@ -10,7 +10,7 @@ impl Config {
         let mut parts = input.trim().splitn(2, " ");
 
         let cmd = parts.next().unwrap().to_string();
-        let input = parts.next().map(|s| parse_args(tokenize(s.trim())));
+        let input = parts.next().map(|s| tokenize(s.trim()));
         let mut args = Vec::new();
         if let Some(input_unpacked) = input {
             args = input_unpacked;

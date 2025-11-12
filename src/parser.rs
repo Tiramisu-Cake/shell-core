@@ -14,17 +14,16 @@ pub fn tokenize(args: &str) -> Vec<String> {
             tokenize_quotes('\'', &mut args, &mut result, &mut str_to_push);
         } else if arg == '\"' {
             tokenize_quotes('\"', &mut args, &mut result, &mut str_to_push);
+        } else if arg == '\\' {
+            println!("I am here!!");
+            if let Some(arg) = args.next() {
+                str_to_push.push(arg);
+            }
         } else {
             str_to_push.push(arg);
             while let Some(arg) = args.next() {
                 if arg == ' ' {
                     break;
-                }
-                if arg == '\\' {
-                    if let Some(arg) = args.next() {
-                        str_to_push.push(arg);
-                    }
-                    continue;
                 }
                 str_to_push.push(arg);
             }

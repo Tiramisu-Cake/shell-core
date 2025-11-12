@@ -3,5 +3,6 @@ use std::io::{self, Write};
 
 pub mod built_in_cmds;
 pub mod parser;
+pub mod parser2;
 pub mod structs;
 pub mod utils;

@@ -50,7 +50,7 @@ fn tokenize_double_quotes(quote: char, args: &mut Chars<'_>, str_to_push: &mut S
             break;
         } else if arg == '\\' {
             if let Some(arg) = args.next() {
-                if ['\"', '$', '\\', '\''].contains(&arg) {
+                if ['\"', '$', '\\', '`'].contains(&arg) {
                     str_to_push.push(arg);
                 } else {
                     str_to_push.push('\\');

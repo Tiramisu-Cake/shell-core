@@ -3,8 +3,8 @@ use crate::structs::Config;
 use std::process::Command;
 
 pub fn execute(config: Config) {
-    let cmd = &config.cmd;
-    let args = &config.args;
+    let cmd = &config.cmd[0];
+    let args = &config.cmd[1..];
 
     let file = get_executable_file(&cmd);
     if file.is_empty() {

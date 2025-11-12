@@ -18,11 +18,11 @@ fn main() {
         }
         let config = Config::build(input);
 
-        let cmd = &config.cmd;
+        let cmd = &config.cmd[0];
         match cmd.as_str() {
-            "cd" => cd_cmd(&config.args),
-            "echo" => echo_cmd(&config.args),
-            "type" => type_cmd(&config.args),
+            "cd" => cd_cmd(&config.cmd[1..].to_vec()),
+            "echo" => echo_cmd(&config.cmd[1..].to_vec()),
+            "type" => type_cmd(&config.cmd[1..].to_vec()),
             "exit" => exit(0),
             "pwd" => pwd_cmd(),
             _ => execute(config),

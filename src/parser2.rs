@@ -54,6 +54,7 @@ fn tokenize_double_quotes(quote: char, args: &mut Chars<'_>, str_to_push: &mut S
                     str_to_push.push(arg);
                 } else {
                     str_to_push.push('\\');
+                    str_to_push.push(arg);
                 }
             } else {
                 str_to_push.push('\\');

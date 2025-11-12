@@ -8,8 +8,10 @@ pub fn tokenize(args: &str) -> Vec<String> {
 
     while let Some(arg) = args.next() {
         if arg == ' ' {
-            result.push(str_to_push);
-            str_to_push = String::new();
+            if !str_to_push.is_empty() {
+                result.push(str_to_push);
+                str_to_push = String::new();
+            }
             continue;
         }
         if arg == '\'' {

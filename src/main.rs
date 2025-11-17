@@ -30,17 +30,32 @@ fn main() {
         }
         let config = SimpleCmd::build(&input);
         let args = config.args;
-        let redirs = config.redirs;
+        let stdout = config.stdout;
+        let stderr = config.stderr;
 
         let cmd = &args[0];
 
-        let _guard;
+        let _guard_stdout;
+        let _guard_stderr;
 
-        if !redirs.is_empty() {
-            let file = open_truncate_file(&redirs[0]).expect("failed to open redirection file");
-            let file_fd = file.as_raw_fd();
-            io::stdout().flush().ok();
-            _guard = FdRedirectGuard::new(1, file_fd);
+        match stdout {
+            StreamTarget::Terminal => (),
+            StreamTarget::File(path) => {
+                let file = open_truncate_file(&path).expect("failed to open redirection file");
+                let file_fd = file.as_raw_fd();
+                io::stdout().flush().ok();
+                _guard_stdout = FdRedirectGuard::new(1, file_fd);
+            }
+        }
+
+        match stderr {
+            StreamTarget::Terminal => (),
+            StreamTarget::File(path) => {
+                let file = open_truncate_file(&path).expect("failed to open redirection file");
+                let file_fd = file.as_raw_fd();
+                io::stdout().flush().ok();
+                _guard_stderr = FdRedirectGuard::new(2, file_fd);
+            }
         }
 
         match cmd.as_str() {

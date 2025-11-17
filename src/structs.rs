@@ -30,24 +30,57 @@ pub enum Node {
     Group,
 }
 
+// pub enum Stream {
+//     Stdout,
+//     Stderr,
+// }
+
+pub enum StreamTarget {
+    Terminal,
+    File(String),
+}
+
+// pub struct Redirect {
+//     pub redir_type: Stream,
+//     pub redir_target: StreamTarget,
+// }
+//
+// impl Default for Redirect {
+//     fn default() -> Self {
+//         Redirect {
+//             redir_type: Stream::Stdout,
+//             redir_target: StreamTarget::Terminal,
+//         }
+//     }
+// }
 pub struct SimpleCmd {
     pub args: Vec<String>,
-    pub redirs: Vec<String>,
+    pub stdout: StreamTarget,
+    pub stderr: StreamTarget,
 }
 
 impl SimpleCmd {
     pub fn build(input: &str) -> SimpleCmd {
-        let (args, redirs) = parse_simple(tokenize(input.trim()));
-        SimpleCmd { args, redirs }
+        let (args, stdout, stderr) = parse_simple(tokenize(input.trim()));
+        SimpleCmd {
+            args,
+            stdout,
+            stderr,
+        }
     }
 }
 
 #[derive(Debug)]
 pub enum Token {
     Word(String),
-    Op(String),
+    Op(OpKind),
 }
 
+#[derive(Debug)]
+pub enum OpKind {
+    RedirToFile,
+    RedirErr,
+}
 // impl Token {
 //     pub fn is_word(&self) -> bool
 // }

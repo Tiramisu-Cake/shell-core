@@ -1,7 +1,7 @@
-use crate::structs::Token;
+use crate::structs::{OpKind, StreamTarget, Token};
 use std::str::Chars;
 
-const OPERATORS: [&str; 2] = ["1>", ">"];
+const OPERATORS: [&str; 3] = ["1>", ">", "2>"];
 
 pub fn tokenize(args: &str) -> Vec<Token> {
     let mut result = Vec::new();
@@ -15,7 +15,8 @@ pub fn tokenize(args: &str) -> Vec<Token> {
                 if !str_to_push.is_empty() {
                     if is_operator(&str_to_push) {
                         match str_to_push.as_str() {
-                            "1>" | ">" => result.push(Token::Op("redir1".to_string())),
+                            "1>" | ">" => result.push(Token::Op(OpKind::RedirToFile)),
+                            "2>" => result.push(Token::Op(OpKind::RedirErr)),
                             _ => (),
                         }
                     } else {
@@ -84,23 +85,33 @@ fn tokenize_double_quotes(quote: char, args: &mut Chars<'_>, str_to_push: &mut S
     }
 }
 
-pub fn parse_simple(cmd: Vec<Token>) -> (Vec<String>, Vec<String>) {
+pub fn parse_simple(cmd: Vec<Token>) -> (Vec<String>, StreamTarget, StreamTarget) {
     let mut args = Vec::new();
-    let mut redirs = Vec::new();
+    let mut stdout = StreamTarget::Terminal;
+    let mut stderr = StreamTarget::Terminal;
+
     let mut it = cmd.iter();
 
     while let Some(token) = it.next() {
         match token {
             Token::Word(s) => args.push(s.clone()),
-            Token::Op(_) => {
+            Token::Op(OpKind::RedirToFile) => {
                 if let Some(token) = it.next() {
                     match token {
-                        Token::Word(target) => redirs.push(target.clone()),
+                        Token::Word(target) => stdout = StreamTarget::File(target.to_owned()),
+                        Token::Op(_) => (),
+                    }
+                }
+            }
+            Token::Op(OpKind::RedirErr) => {
+                if let Some(token) = it.next() {
+                    match token {
+                        Token::Word(target) => stderr = StreamTarget::File(target.to_owned()),
                         Token::Op(_) => (),
                     }
                 }
             }
         }
     }
-    (args, redirs)
+    (args, stdout, stderr)
 }

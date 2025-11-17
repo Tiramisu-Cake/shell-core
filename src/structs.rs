@@ -35,9 +35,14 @@ pub enum Node {
 //     Stderr,
 // }
 
+pub struct File {
+    pub path: String,
+    pub append: bool,
+}
+
 pub enum StreamTarget {
     Terminal,
-    File(String),
+    File(File),
 }
 
 // pub struct Redirect {
@@ -78,8 +83,10 @@ pub enum Token {
 
 #[derive(Debug)]
 pub enum OpKind {
-    RedirToFile,
-    RedirErr,
+    RedirOutTruncate,
+    RedirOutAppend,
+    RedirErrTruncate,
+    RedirErrAppend,
 }
 // impl Token {
 //     pub fn is_word(&self) -> bool

@@ -1,7 +1,7 @@
-use crate::structs::{OpKind, StreamTarget, Token};
+use crate::structs::{File, OpKind, StreamTarget, Token};
 use std::str::Chars;
 
-const OPERATORS: [&str; 3] = ["1>", ">", "2>"];
+const OPERATORS: [&str; 6] = ["1>", ">", "1>>", ">>", "2>", "2>>"];
 
 pub fn tokenize(args: &str) -> Vec<Token> {
     let mut result = Vec::new();
@@ -15,8 +15,11 @@ pub fn tokenize(args: &str) -> Vec<Token> {
                 if !str_to_push.is_empty() {
                     if is_operator(&str_to_push) {
                         match str_to_push.as_str() {
-                            "1>" | ">" => result.push(Token::Op(OpKind::RedirToFile)),
-                            "2>" => result.push(Token::Op(OpKind::RedirErr)),
+                            "1>" | ">" => result.push(Token::Op(OpKind::RedirOutTruncate)),
+                            "2>" => result.push(Token::Op(OpKind::RedirErrTruncate)),
+                            "1>>" | ">>" => result.push(Token::Op(OpKind::RedirOutAppend)),
+                            "2>>" => result.push(Token::Op(OpKind::RedirErrAppend)),
+
                             _ => (),
                         }
                     } else {
@@ -95,18 +98,58 @@ pub fn parse_simple(cmd: Vec<Token>) -> (Vec<String>, StreamTarget, StreamTarget
     while let Some(token) = it.next() {
         match token {
             Token::Word(s) => args.push(s.clone()),
-            Token::Op(OpKind::RedirToFile) => {
+            Token::Op(OpKind::RedirOutTruncate) => {
                 if let Some(token) = it.next() {
                     match token {
-                        Token::Word(target) => stdout = StreamTarget::File(target.to_owned()),
+                        Token::Word(target) => {
+                            let target = File {
+                                path: target.to_owned(),
+                                append: false,
+                            };
+                            stdout = StreamTarget::File(target);
+                        }
                         Token::Op(_) => (),
                     }
                 }
             }
-            Token::Op(OpKind::RedirErr) => {
+            Token::Op(OpKind::RedirErrTruncate) => {
                 if let Some(token) = it.next() {
                     match token {
-                        Token::Word(target) => stderr = StreamTarget::File(target.to_owned()),
+                        Token::Word(target) => {
+                            let target = File {
+                                path: target.to_owned(),
+                                append: false,
+                            };
+                            stderr = StreamTarget::File(target);
+                        }
+                        Token::Op(_) => (),
+                    }
+                }
+            }
+            Token::Op(OpKind::RedirErrAppend) => {
+                if let Some(token) = it.next() {
+                    match token {
+                        Token::Word(target) => {
+                            let target = File {
+                                path: target.to_owned(),
+                                append: true,
+                            };
+                            stderr = StreamTarget::File(target);
+                        }
+                        Token::Op(_) => (),
+                    }
+                }
+            }
+            Token::Op(OpKind::RedirOutAppend) => {
+                if let Some(token) = it.next() {
+                    match token {
+                        Token::Word(target) => {
+                            let target = File {
+                                path: target.to_owned(),
+                                append: true,
+                            };
+                            stdout = StreamTarget::File(target);
+                        }
                         Token::Op(_) => (),
                     }
                 }
@@ -115,3 +158,5 @@ pub fn parse_simple(cmd: Vec<Token>) -> (Vec<String>, StreamTarget, StreamTarget
     }
     (args, stdout, stderr)
 }
+
+fn redirout_token(append: bool, target: &str) {}

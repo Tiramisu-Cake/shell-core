@@ -14,6 +14,14 @@ fn open_truncate_file(path: &str) -> io::Result<File> {
         .truncate(true)
         .open(path)
 }
+
+fn open_append_file(path: &str) -> io::Result<File> {
+    OpenOptions::new()
+        .write(true)
+        .create(true)
+        .append(true)
+        .open(path)
+}
 fn main() {
     loop {
         print!("$ ");
@@ -40,8 +48,13 @@ fn main() {
 
         match stdout {
             StreamTarget::Terminal => (),
-            StreamTarget::File(path) => {
-                let file = open_truncate_file(&path).expect("failed to open redirection file");
+            StreamTarget::File(File) => {
+                let file;
+                if File.append {
+                    file = open_append_file(&File.path).expect("failed to open redirection file");
+                } else {
+                    file = open_truncate_file(&File.path).expect("failed to open redirection file");
+                }
                 let file_fd = file.as_raw_fd();
                 io::stdout().flush().ok();
                 _guard_stdout = FdRedirectGuard::new(1, file_fd);
@@ -50,8 +63,13 @@ fn main() {
 
         match stderr {
             StreamTarget::Terminal => (),
-            StreamTarget::File(path) => {
-                let file = open_truncate_file(&path).expect("failed to open redirection file");
+            StreamTarget::File(File) => {
+                let file;
+                if File.append {
+                    file = open_append_file(&File.path).expect("failed to open redirection file");
+                } else {
+                    file = open_truncate_file(&File.path).expect("failed to open redirection file");
+                }
                 let file_fd = file.as_raw_fd();
                 io::stdout().flush().ok();
                 _guard_stderr = FdRedirectGuard::new(2, file_fd);

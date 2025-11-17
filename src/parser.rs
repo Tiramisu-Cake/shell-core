@@ -1,69 +1,106 @@
-use std::mem;
+use crate::structs::Token;
 use std::str::Chars;
 
-pub fn tokenize(args: &str) -> Vec<String> {
+const OPERATORS: [&str; 2] = ["1>", ">"];
+
+pub fn tokenize(args: &str) -> Vec<Token> {
     let mut result = Vec::new();
     let mut args = args.chars();
 
     let mut str_to_push = String::new();
+
     while let Some(arg) = args.next() {
-        if arg == ' ' {
-            continue;
-        }
-        if arg == '\'' {
-            tokenize_quotes('\'', &mut args, &mut result, &mut str_to_push);
-        } else if arg == '\"' {
-            tokenize_quotes('\"', &mut args, &mut result, &mut str_to_push);
-        } else if arg == '\\' {
-            println!("I am here!!");
-            if let Some(arg) = args.next() {
-                str_to_push.push(arg);
-            }
-        } else {
-            str_to_push.push(arg);
-            while let Some(arg) = args.next() {
-                if arg == ' ' {
-                    break;
+        match arg {
+            ' ' => {
+                if !str_to_push.is_empty() {
+                    if is_operator(&str_to_push) {
+                        match str_to_push.as_str() {
+                            "1>" | ">" => result.push(Token::Op("redir1".to_string())),
+                            _ => (),
+                        }
+                    } else {
+                        result.push(Token::Word(str_to_push));
+                    }
                 }
-                str_to_push.push(arg);
+                str_to_push = String::new();
             }
-            result.push(str_to_push);
-            str_to_push = String::new();
+            '\'' => tokenize_single_quotes('\'', &mut args, &mut str_to_push),
+            '"' => tokenize_double_quotes('"', &mut args, &mut str_to_push),
+            '\\' => {
+                if let Some(arg) = args.next() {
+                    str_to_push.push(arg);
+                } else {
+                    str_to_push.push('\\');
+                }
+            }
+            _ => str_to_push.push(arg),
         }
+    }
+    if !str_to_push.is_empty() {
+        result.push(Token::Word(str_to_push));
     }
     result
 }
 
-fn tokenize_quotes(
-    quote: char,
-    args: &mut Chars<'_>,
-    result: &mut Vec<String>,
-    str_to_push: &mut String,
-) {
-    str_to_push.push(quote);
-    let mut enough_quotes = false;
-    while let Some(arg) = args.next() {
-        if arg == quote {
-            enough_quotes = !enough_quotes;
-        }
-        if arg == ' ' && enough_quotes {
-            break;
-        }
-        str_to_push.push(arg);
-    }
-    result.push(mem::take(str_to_push)); //move str_to_push and replace it with the new one
+#[test]
+fn test_tokenize() {
+    let input = "echo hello > file.txt";
+    let tokens = tokenize(&input);
+    println!("{:?}", tokens);
 }
 
-pub fn parse_args(args: Vec<String>) -> Vec<String> {
-    let mut new_args: Vec<String> = Vec::new();
-    for (i, word) in args.iter().enumerate() {
-        if word.starts_with("'") || word.contains("''") {
-            new_args.push(word.replace("'", ""));
-        } else if word.contains("\"") {
-            new_args.push(word.replace("\"", ""));
+fn is_operator(input: &str) -> bool {
+    OPERATORS.contains(&input)
+}
+
+fn tokenize_single_quotes(quote: char, args: &mut Chars<'_>, str_to_push: &mut String) {
+    while let Some(arg) = args.next() {
+        if arg == quote {
+            break;
         } else {
-            new_args.push(word.clone());
+            str_to_push.push(arg);
         }
     }
-    new_args
+}
+
+fn tokenize_double_quotes(quote: char, args: &mut Chars<'_>, str_to_push: &mut String) {
+    while let Some(arg) = args.next() {
+        if arg == quote {
+            break;
+        } else if arg == '\\' {
+            if let Some(arg) = args.next() {
+                if ['\"', '$', '\\', '`'].contains(&arg) {
+                    str_to_push.push(arg);
+                } else {
+                    str_to_push.push('\\');
+                    str_to_push.push(arg);
+                }
+            } else {
+                str_to_push.push('\\');
+            }
+        } else {
+            str_to_push.push(arg);
+        }
+    }
+}
+
+pub fn parse_simple(cmd: Vec<Token>) -> (Vec<String>, Vec<String>) {
+    let mut args = Vec::new();
+    let mut redirs = Vec::new();
+    let mut it = cmd.iter();
+
+    while let Some(token) = it.next() {
+        match token {
+            Token::Word(s) => args.push(s.clone()),
+            Token::Op(_) => {
+                if let Some(token) = it.next() {
+                    match token {
+                        Token::Word(target) => redirs.push(target.clone()),
+                        Token::Op(_) => (),
+                    }
+                }
+            }
+        }
+    }
+    (args, redirs)
 }

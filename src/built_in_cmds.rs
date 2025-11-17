@@ -1,4 +1,4 @@
-use crate::utils::env::*;
+use crate::utils::{env::*, overwrite_file};
 use std::{
     env::{current_dir, set_current_dir},
     fs,
@@ -8,7 +8,7 @@ use std::{
 
 const CMDS: [&str; 5] = ["cd", "echo", "exit", "type", "pwd"];
 
-pub fn is_built(cmd: &str) -> bool {
+pub fn is_builtin(cmd: &str) -> bool {
     return CMDS.contains(&cmd);
 }
 
@@ -30,24 +30,25 @@ pub fn get_executable_file(cmd: &str) -> String {
     return "".to_string();
 }
 
-pub fn echo_cmd(args: &Vec<String>) {
+pub fn echo_cmd(args: &[String]) {
     if args.is_empty() {
         println!("");
         return;
     };
     println!("{}", args.join(" "));
+    return;
 }
 
-pub fn type_cmd(cmd: &Vec<String>) {
-    if cmd.is_empty() {
+pub fn type_cmd(args: &[String]) {
+    if args.is_empty() {
         println!("");
         return;
     };
-    if cmd.len() > 1 {
-        println!("{}: not found", cmd.join(" "));
+    if args.len() > 1 {
+        println!("{}: not found", args.join(" "));
     }
-    let cmd = cmd[0].clone();
-    if is_built(&cmd) {
+    let cmd = args[0].clone();
+    if is_builtin(&cmd) {
         println!("{} is a shell builtin", cmd);
         return;
     }
@@ -58,7 +59,7 @@ pub fn type_cmd(cmd: &Vec<String>) {
     }
     println!("{}: not found", cmd);
 }
-pub fn pwd_cmd() {
+pub fn pwd_cmd(args: &[String]) {
     let wd = current_dir();
     match wd {
         Ok(path) => println!("{}", path.display()),
@@ -66,11 +67,11 @@ pub fn pwd_cmd() {
     }
 }
 
-pub fn cd_cmd(path: &Vec<String>) {
-    if path.is_empty() {
+pub fn cd_cmd(args: &[String]) {
+    if args.is_empty() {
         return;
     }
-    let mut path = path[0].to_string();
+    let mut path = args[0].to_string();
     if path == "~" {
         path = read_home().unwrap();
     }

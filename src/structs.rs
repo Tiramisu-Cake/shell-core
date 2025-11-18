@@ -24,7 +24,7 @@ pub struct AST {
 }
 
 pub enum Node {
-    Simple,
+    Simple(SimpleCmd),
     Pipeline,
     Sequence,
     Group,
@@ -35,14 +35,16 @@ pub enum Node {
 //     Stderr,
 // }
 
-pub struct File {
+#[derive(Debug)]
+pub struct TargetFile {
     pub path: String,
     pub append: bool,
 }
 
+#[derive(Debug)]
 pub enum StreamTarget {
     Terminal,
-    File(File),
+    File(TargetFile),
 }
 
 // pub struct Redirect {
@@ -58,6 +60,8 @@ pub enum StreamTarget {
 //         }
 //     }
 // }
+
+#[derive(Debug)]
 pub struct SimpleCmd {
     pub args: Vec<String>,
     pub stdout: StreamTarget,
@@ -66,12 +70,7 @@ pub struct SimpleCmd {
 
 impl SimpleCmd {
     pub fn build(input: &str) -> SimpleCmd {
-        let (args, stdout, stderr) = parse_simple(tokenize(input.trim()));
-        SimpleCmd {
-            args,
-            stdout,
-            stderr,
-        }
+        parse_simple(&tokenize(input))
     }
 }
 
@@ -87,6 +86,7 @@ pub enum OpKind {
     RedirOutAppend,
     RedirErrTruncate,
     RedirErrAppend,
+    Pipeline,
 }
 // impl Token {
 //     pub fn is_word(&self) -> bool

@@ -1,7 +1,7 @@
-use crate::structs::{File, OpKind, StreamTarget, Token};
+use crate::structs::{OpKind, SimpleCmd, StreamTarget, TargetFile, Token};
 use std::str::Chars;
 
-const OPERATORS: [&str; 6] = ["1>", ">", "1>>", ">>", "2>", "2>>"];
+const OPERATORS: [&str; 7] = ["1>", ">", "1>>", ">>", "2>", "2>>", "|"];
 
 pub fn tokenize(args: &str) -> Vec<Token> {
     let mut result = Vec::new();
@@ -19,7 +19,7 @@ pub fn tokenize(args: &str) -> Vec<Token> {
                             "2>" => result.push(Token::Op(OpKind::RedirErrTruncate)),
                             "1>>" | ">>" => result.push(Token::Op(OpKind::RedirOutAppend)),
                             "2>>" => result.push(Token::Op(OpKind::RedirErrAppend)),
-
+                            "|" => result.push(Token::Op(OpKind::Pipeline)),
                             _ => (),
                         }
                     } else {
@@ -88,7 +88,40 @@ fn tokenize_double_quotes(quote: char, args: &mut Chars<'_>, str_to_push: &mut S
     }
 }
 
-pub fn parse_simple(cmd: Vec<Token>) -> (Vec<String>, StreamTarget, StreamTarget) {
+pub fn parse_pipeline(cmd: &[Token]) -> Vec<SimpleCmd> {
+    let mut result = Vec::new();
+    for (i, token) in cmd.iter().enumerate() {
+        match token {
+            Token::Op(OpKind::Pipeline) => {
+                result.push(parse_simple(&cmd[0..i]));
+                result.append(&mut parse_pipeline(&cmd[i + 1..]));
+                break;
+            }
+            _ => (),
+        }
+    }
+    if result.is_empty() {
+        result.push(parse_simple(cmd));
+    }
+    result
+}
+
+#[test]
+fn test_pipeline() {
+    let input = "cat /var/log/syslog \
+  | grep \"ERROR\" \
+  | awk '{print $1, $2, $5}' \
+  | sort \
+  | uniq -c \
+  | sort -nr \
+  | head -20
+";
+    let input2 = "echo hi";
+    let tokens = parse_pipeline(&tokenize(&input2));
+    println!("{:?}", tokens);
+}
+
+pub fn parse_simple(cmd: &[Token]) -> SimpleCmd {
     let mut args = Vec::new();
     let mut stdout = StreamTarget::Terminal;
     let mut stderr = StreamTarget::Terminal;
@@ -100,63 +133,43 @@ pub fn parse_simple(cmd: Vec<Token>) -> (Vec<String>, StreamTarget, StreamTarget
             Token::Word(s) => args.push(s.clone()),
             Token::Op(OpKind::RedirOutTruncate) => {
                 if let Some(token) = it.next() {
-                    match token {
-                        Token::Word(target) => {
-                            let target = File {
-                                path: target.to_owned(),
-                                append: false,
-                            };
-                            stdout = StreamTarget::File(target);
-                        }
-                        Token::Op(_) => (),
-                    }
+                    redirect(token, &mut stdout, false);
                 }
             }
             Token::Op(OpKind::RedirErrTruncate) => {
                 if let Some(token) = it.next() {
-                    match token {
-                        Token::Word(target) => {
-                            let target = File {
-                                path: target.to_owned(),
-                                append: false,
-                            };
-                            stderr = StreamTarget::File(target);
-                        }
-                        Token::Op(_) => (),
-                    }
+                    redirect(token, &mut stderr, false);
                 }
             }
             Token::Op(OpKind::RedirErrAppend) => {
                 if let Some(token) = it.next() {
-                    match token {
-                        Token::Word(target) => {
-                            let target = File {
-                                path: target.to_owned(),
-                                append: true,
-                            };
-                            stderr = StreamTarget::File(target);
-                        }
-                        Token::Op(_) => (),
-                    }
+                    redirect(token, &mut stderr, true);
                 }
             }
             Token::Op(OpKind::RedirOutAppend) => {
                 if let Some(token) = it.next() {
-                    match token {
-                        Token::Word(target) => {
-                            let target = File {
-                                path: target.to_owned(),
-                                append: true,
-                            };
-                            stdout = StreamTarget::File(target);
-                        }
-                        Token::Op(_) => (),
-                    }
+                    redirect(token, &mut stdout, true);
                 }
             }
+            Token::Op(OpKind::Pipeline) => (),
         }
     }
-    (args, stdout, stderr)
+    SimpleCmd {
+        args,
+        stdout,
+        stderr,
+    }
 }
 
-fn redirout_token(append: bool, target: &str) {}
+fn redirect(token: &Token, std: &mut StreamTarget, append: bool) {
+    match token {
+        Token::Word(target) => {
+            let target = TargetFile {
+                path: target.to_owned(),
+                append,
+            };
+            *std = StreamTarget::File(target);
+        }
+        Token::Op(_) => (),
+    }
+}

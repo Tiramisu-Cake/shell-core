@@ -1,9 +1,17 @@
 use codecrafters_shell::built_in_cmds::*;
+use codecrafters_shell::parser::*;
 use codecrafters_shell::redirect::*;
+use codecrafters_shell::structs::TargetFile;
 use codecrafters_shell::structs::*;
 use codecrafters_shell::utils::*;
+use libc::STDERR_FILENO;
+use libc::STDIN_FILENO;
+use libc::STDOUT_FILENO;
+use libc::{close, dup2};
+use nix::unistd::{fork, pipe, ForkResult};
 use std::fs::{File, OpenOptions};
 use std::io::{self, Write};
+use std::os::fd::IntoRawFd;
 use std::os::unix::io::AsRawFd;
 use std::process::exit;
 
@@ -22,6 +30,54 @@ fn open_append_file(path: &str) -> io::Result<File> {
         .append(true)
         .open(path)
 }
+
+fn open_and_get_fd(target_file: &TargetFile) -> i32 {
+    let file;
+    if target_file.append {
+        file = open_append_file(&target_file.path).expect("failed to open redirection file");
+    } else {
+        file = open_truncate_file(&target_file.path).expect("failed to open redirection file");
+    }
+    file.as_raw_fd()
+}
+
+fn run_simplecmd(cmd: &SimpleCmd) {
+    let args = &cmd.args;
+    let stdout = &cmd.stdout;
+    let stderr = &cmd.stderr;
+
+    let cmd = &args[0];
+
+    let _guard_stdout;
+    let _guard_stderr;
+
+    match stdout {
+        StreamTarget::Terminal => (),
+        StreamTarget::File(target_file) => {
+            let file_fd = open_and_get_fd(target_file);
+            io::stdout().flush().ok();
+            _guard_stdout = FdRedirectGuard::new(1, file_fd);
+        }
+    }
+
+    match stderr {
+        StreamTarget::Terminal => (),
+        StreamTarget::File(target_file) => {
+            let file_fd = open_and_get_fd(target_file);
+            io::stdout().flush().ok();
+            _guard_stderr = FdRedirectGuard::new(2, file_fd);
+        }
+    }
+
+    match cmd.as_str() {
+        "cd" => cd_cmd(&args[1..]),
+        "echo" => echo_cmd(&args[1..]),
+        "type" => type_cmd(&args[1..]),
+        "exit" => exit(0),
+        "pwd" => pwd_cmd(&args[1..]),
+        _ => execute(&args),
+    }
+}
 fn main() {
     loop {
         print!("$ ");
@@ -36,53 +92,38 @@ fn main() {
             }
             _ => (),
         }
-        let config = SimpleCmd::build(&input);
-        let args = config.args;
-        let stdout = config.stdout;
-        let stderr = config.stderr;
-
-        let cmd = &args[0];
-
-        let _guard_stdout;
-        let _guard_stderr;
-
-        match stdout {
-            StreamTarget::Terminal => (),
-            StreamTarget::File(File) => {
-                let file;
-                if File.append {
-                    file = open_append_file(&File.path).expect("failed to open redirection file");
-                } else {
-                    file = open_truncate_file(&File.path).expect("failed to open redirection file");
-                }
-                let file_fd = file.as_raw_fd();
-                io::stdout().flush().ok();
-                _guard_stdout = FdRedirectGuard::new(1, file_fd);
-            }
+        let config = parse_pipeline(&tokenize(input.trim()));
+        if config.len() <= 1 {
+            run_simplecmd(&config[0]);
+            continue;
         }
-
-        match stderr {
-            StreamTarget::Terminal => (),
-            StreamTarget::File(File) => {
-                let file;
-                if File.append {
-                    file = open_append_file(&File.path).expect("failed to open redirection file");
-                } else {
-                    file = open_truncate_file(&File.path).expect("failed to open redirection file");
+        let (read_end, write_end) = pipe().unwrap();
+        let write_fd = write_end.into_raw_fd();
+        let read_fd = read_end.into_raw_fd();
+        let fork1 = unsafe { fork() }.unwrap();
+        match fork1 {
+            ForkResult::Parent { child } => {
+                unsafe { close(write_fd) };
+                let fork2 = unsafe { fork() }.unwrap();
+                match fork2 {
+                    ForkResult::Parent { child } => {
+                        unsafe { close(read_fd) };
+                    }
+                    ForkResult::Child => {
+                        unsafe { dup2(read_fd, STDIN_FILENO) };
+                        unsafe { close(read_fd) };
+                        run_simplecmd(&config[1]);
+                        break;
+                    }
                 }
-                let file_fd = file.as_raw_fd();
-                io::stdout().flush().ok();
-                _guard_stderr = FdRedirectGuard::new(2, file_fd);
             }
-        }
-
-        match cmd.as_str() {
-            "cd" => cd_cmd(&args[1..]),
-            "echo" => echo_cmd(&args[1..]),
-            "type" => type_cmd(&args[1..]),
-            "exit" => exit(0),
-            "pwd" => pwd_cmd(&args[1..]),
-            _ => execute(&args),
+            ForkResult::Child => {
+                unsafe { close(read_fd) };
+                unsafe { dup2(write_fd, STDOUT_FILENO) };
+                unsafe { close(write_fd) };
+                run_simplecmd(&config[0]);
+                break;
+            }
         }
     }
 }

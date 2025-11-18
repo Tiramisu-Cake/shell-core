@@ -116,7 +116,7 @@ fn test_pipeline() {
   | sort -nr \
   | head -20
 ";
-    let input2 = "echo hi";
+    let input2 = "ls -1 nonexistent 2>> /tmp/bee/cow.md";
     let tokens = parse_pipeline(&tokenize(&input2));
     println!("{:?}", tokens);
 }

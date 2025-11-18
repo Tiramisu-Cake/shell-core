@@ -31,14 +31,14 @@ fn open_append_file(path: &str) -> io::Result<File> {
         .open(path)
 }
 
-fn open_and_get_fd(target_file: &TargetFile) -> i32 {
+fn open_and_get_fd(target_file: &TargetFile) -> File {
     let file;
     if target_file.append {
         file = open_append_file(&target_file.path).expect("failed to open redirection file");
     } else {
         file = open_truncate_file(&target_file.path).expect("failed to open redirection file");
     }
-    file.as_raw_fd()
+    file
 }
 
 fn run_simplecmd(cmd: &SimpleCmd) {
@@ -54,7 +54,8 @@ fn run_simplecmd(cmd: &SimpleCmd) {
     match stdout {
         StreamTarget::Terminal => (),
         StreamTarget::File(target_file) => {
-            let file_fd = open_and_get_fd(target_file);
+            let file = open_and_get_fd(target_file);
+            let file_fd = file.as_raw_fd();
             io::stdout().flush().ok();
             _guard_stdout = FdRedirectGuard::new(1, file_fd);
         }
@@ -63,7 +64,8 @@ fn run_simplecmd(cmd: &SimpleCmd) {
     match stderr {
         StreamTarget::Terminal => (),
         StreamTarget::File(target_file) => {
-            let file_fd = open_and_get_fd(target_file);
+            let file = open_and_get_fd(target_file);
+            let file_fd = file.as_raw_fd();
             io::stdout().flush().ok();
             _guard_stderr = FdRedirectGuard::new(2, file_fd);
         }

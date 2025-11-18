@@ -4,10 +4,10 @@ use codecrafters_shell::redirect::*;
 use codecrafters_shell::structs::TargetFile;
 use codecrafters_shell::structs::*;
 use codecrafters_shell::utils::*;
-use libc::STDERR_FILENO;
 use libc::STDIN_FILENO;
 use libc::STDOUT_FILENO;
 use libc::{close, dup2};
+use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::{fork, pipe, ForkResult};
 use std::fs::{File, OpenOptions};
 use std::io::{self, Write};
@@ -102,18 +102,20 @@ fn main() {
         let read_fd = read_end.into_raw_fd();
         let fork1 = unsafe { fork() }.unwrap();
         match fork1 {
-            ForkResult::Parent { child } => {
+            ForkResult::Parent { child: pid1 } => {
                 unsafe { close(write_fd) };
                 let fork2 = unsafe { fork() }.unwrap();
                 match fork2 {
-                    ForkResult::Parent { child } => {
+                    ForkResult::Parent { child: pid2 } => {
                         unsafe { close(read_fd) };
+                        let _status1 = waitpid(pid1, None);
+                        let _status2 = waitpid(pid2, None);
                     }
                     ForkResult::Child => {
                         unsafe { dup2(read_fd, STDIN_FILENO) };
                         unsafe { close(read_fd) };
                         run_simplecmd(&config[1]);
-                        break;
+                        exit(0);
                     }
                 }
             }
@@ -122,7 +124,7 @@ fn main() {
                 unsafe { dup2(write_fd, STDOUT_FILENO) };
                 unsafe { close(write_fd) };
                 run_simplecmd(&config[0]);
-                break;
+                exit(0);
             }
         }
     }

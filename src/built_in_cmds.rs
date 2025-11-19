@@ -42,8 +42,18 @@ pub fn echo_cmd(args: &[String]) {
     return;
 }
 pub fn history_cmd(state: &ShellState, args: &[String]) {
+    if args.is_empty() {
+        for (i, line) in state.history.iter().enumerate() {
+            println!("  {} {}", i + 1, line);
+        }
+        return;
+    }
+    let bound: usize = args[0].parse().unwrap();
+    let size = state.history.len();
     for (i, line) in state.history.iter().enumerate() {
-        println!("  {} {}", i + 1, line);
+        if i >= size - bound {
+            println!("  {} {}", i + 1, line);
+        }
     }
 }
 pub fn type_cmd(args: &[String]) {

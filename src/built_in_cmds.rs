@@ -1,4 +1,7 @@
-use crate::utils::{env::*, overwrite_file};
+use crate::{
+    structs::ShellState,
+    utils::{env::*, overwrite_file},
+};
 use std::{
     env::{current_dir, set_current_dir},
     fs,
@@ -6,7 +9,7 @@ use std::{
     path::Path,
 };
 
-const CMDS: [&str; 5] = ["cd", "echo", "exit", "type", "pwd"];
+const CMDS: [&str; 6] = ["cd", "echo", "exit", "type", "pwd", "history"];
 
 pub fn is_builtin(cmd: &str) -> bool {
     return CMDS.contains(&cmd);
@@ -38,7 +41,11 @@ pub fn echo_cmd(args: &[String]) {
     println!("{}", args.join(" "));
     return;
 }
-
+pub fn history_cmd(state: &ShellState, args: &[String]) {
+    for (i, line) in state.history.iter().enumerate() {
+        println!("  {} {}", i + 1, line);
+    }
+}
 pub fn type_cmd(args: &[String]) {
     if args.is_empty() {
         println!("");

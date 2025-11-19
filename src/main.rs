@@ -59,7 +59,9 @@ fn match_std(std: &StreamTarget, target_fd: i32) -> Result<Option<FdRedirectGuar
     }
 }
 
-fn run_simplecmd(cmd: &SimpleCmd) {
+fn run_builtin_cmd(cmd: &SimpleCmd) {}
+
+fn run_simplecmd(state: &mut ShellState, cmd: &SimpleCmd) {
     let args = &cmd.args;
     let stdout = &cmd.stdout;
     let stderr = &cmd.stderr;
@@ -75,10 +77,12 @@ fn run_simplecmd(cmd: &SimpleCmd) {
         "type" => type_cmd(&args[1..]),
         "exit" => exit(0),
         "pwd" => pwd_cmd(&args[1..]),
+        "history" => history_cmd(state, &args[1..]),
         _ => execute(&args),
     }
 }
 fn main() {
+    let mut state = ShellState::new();
     loop {
         print!("$ ");
         io::stdout().flush().unwrap();
@@ -92,20 +96,22 @@ fn main() {
             }
             _ => (),
         }
+        state.history.push(input.trim().to_string());
         let config = parse_pipeline(&tokenize(input.trim()));
         if config.len() <= 1 {
-            run_simplecmd(&config[0]);
+            run_simplecmd(&mut state, &config[0]);
             continue;
         }
 
         let mut it = config.iter();
         let cmd1 = it.next().unwrap();
         let cmd2 = it.next();
-        run_pipeline(&mut it, cmd1, cmd2, None, Vec::new());
+        run_pipeline(&mut state, &mut it, cmd1, cmd2, None, Vec::new());
     }
 }
 
 fn run_pipeline(
+    mut state: &mut ShellState,
     mut cmds: &mut Iter<'_, SimpleCmd>,
     cmd1: &SimpleCmd,
     cmd2: Option<&SimpleCmd>,
@@ -133,7 +139,7 @@ fn run_pipeline(
                                 dup2(read_fd, STDIN_FILENO);
                                 close(read_fd);
                             };
-                            run_simplecmd(cmd1);
+                            run_simplecmd(&mut state, cmd1);
                             exit(0);
                         }
                     }
@@ -159,7 +165,14 @@ fn run_pipeline(
                     };
                     pids.push(pid);
                     let next_cmd = cmds.next();
-                    run_pipeline(&mut cmds, cmd, next_cmd, Some(next_read_fd), pids);
+                    run_pipeline(
+                        &mut state,
+                        &mut cmds,
+                        cmd,
+                        next_cmd,
+                        Some(next_read_fd),
+                        pids,
+                    );
                 }
                 ForkResult::Child => {
                     unsafe {
@@ -174,7 +187,7 @@ fn run_pipeline(
                         dup2(write_fd, STDOUT_FILENO);
                         close(write_fd);
                     };
-                    run_simplecmd(cmd1);
+                    run_simplecmd(&mut state, cmd1);
                     exit(0);
                 }
             }

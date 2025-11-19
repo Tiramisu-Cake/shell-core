@@ -2,6 +2,22 @@ use std::str;
 
 use crate::parser::*;
 
+pub struct ShellState {
+    pub history: Vec<String>,
+}
+
+impl ShellState {
+    pub fn new() -> ShellState {
+        ShellState {
+            history: Vec::new(),
+        }
+    }
+}
+
+enum ShellEffect {
+    AddHistory,
+}
+
 pub struct Config {
     pub cmd: Vec<String>,
     /*

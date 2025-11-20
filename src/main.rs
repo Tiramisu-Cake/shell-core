@@ -114,8 +114,6 @@ fn main() {
                 let cmd1 = it.next().unwrap();
                 let cmd2 = it.next();
                 run_pipeline(&mut state, &mut it, cmd1, cmd2, None, Vec::new());
-
-                println!("Ввод: {}", input);
             }
             Err(ReadlineError::Interrupted) => {
                 println!("^C");
@@ -126,7 +124,7 @@ fn main() {
                 break;
             }
             Err(err) => {
-                println!("Ошибка: {:?}", err);
+                println!("Error: {:?}", err);
                 break;
             }
         }

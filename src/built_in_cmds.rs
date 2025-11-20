@@ -50,6 +50,7 @@ pub fn history_cmd(state: &ShellState, args: &[String]) {
     }
     let bound: usize = args[0].parse().unwrap();
     let size = state.history.len();
+
     for (i, line) in state.history.iter().enumerate() {
         if i >= size - bound {
             println!("  {} {}", i + 1, line);

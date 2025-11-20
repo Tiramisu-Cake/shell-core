@@ -18,6 +18,9 @@ use std::os::unix::io::AsRawFd;
 use std::process::exit;
 use std::slice::Iter;
 
+use rustyline::error::ReadlineError;
+use rustyline::DefaultEditor;
+
 fn open_truncate_file(path: &str) -> io::Result<File> {
     OpenOptions::new()
         .write(true)
@@ -81,7 +84,57 @@ fn run_simplecmd(state: &mut ShellState, cmd: &SimpleCmd) {
         _ => execute(&args),
     }
 }
+
+// current main with rustyline
 fn main() {
+    let mut state = ShellState::new();
+
+    let mut rl = DefaultEditor::new().expect("failed to create editor");
+
+    let history_path = ".shell_hst";
+    let _ = rl.load_history(history_path);
+
+    loop {
+        let line = rl.readline("$ ");
+        match line {
+            Ok(input) => {
+                let trimmed = input.trim();
+                if !trimmed.is_empty() {
+                    rl.add_history_entry(trimmed);
+                    state.history.push(input.trim().to_string());
+                }
+
+                let config = parse_pipeline(&tokenize(input.trim()));
+                if config.len() <= 1 {
+                    run_simplecmd(&mut state, &config[0]);
+                    continue;
+                }
+
+                let mut it = config.iter();
+                let cmd1 = it.next().unwrap();
+                let cmd2 = it.next();
+                run_pipeline(&mut state, &mut it, cmd1, cmd2, None, Vec::new());
+
+                println!("Ввод: {}", input);
+            }
+            Err(ReadlineError::Interrupted) => {
+                println!("^C");
+                continue;
+            }
+            Err(ReadlineError::Eof) => {
+                println!("^D");
+                break;
+            }
+            Err(err) => {
+                println!("Ошибка: {:?}", err);
+                break;
+            }
+        }
+    }
+}
+
+// old main without rustyline
+fn main_old() {
     let mut state = ShellState::new();
     loop {
         print!("$ ");

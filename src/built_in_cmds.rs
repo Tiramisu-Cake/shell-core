@@ -2,6 +2,8 @@ use crate::{
     structs::ShellState,
     utils::{env::*, overwrite_file},
 };
+use rustyline::history::{FileHistory, History};
+use rustyline::Editor;
 use std::{
     env::{current_dir, set_current_dir},
     fs,
@@ -41,17 +43,35 @@ pub fn echo_cmd(args: &[String]) {
     println!("{}", args.join(" "));
     return;
 }
-pub fn history_cmd(state: &ShellState, args: &[String]) {
-    if args.is_empty() {
-        for (i, line) in state.history.iter().enumerate() {
-            println!("  {} {}", i + 1, line);
+pub fn history_cmd(state: &mut Editor<(), FileHistory>, args: &[String]) {
+    let mut args = args.iter();
+    let bound = match args.next() {
+        Some(ref arg) => match arg.parse::<usize>() {
+            Ok(val) => val,
+            Err(_) => match arg.as_str() {
+                "-r" => {
+                    if let Some(history_path) = args.next() {
+                        state.load_history(history_path);
+                        return;
+                    } else {
+                        return;
+                    }
+                }
+                _ => {
+                    return;
+                }
+            },
+        },
+        None => {
+            for (i, line) in state.history().iter().enumerate() {
+                println!("  {} {}", i + 1, line);
+            }
+            return;
         }
-        return;
-    }
-    let bound: usize = args[0].parse().unwrap();
-    let size = state.history.len();
+    };
+    let size = state.history().len();
 
-    for (i, line) in state.history.iter().enumerate() {
+    for (i, line) in state.history().iter().enumerate() {
         if i >= size - bound {
             println!("  {} {}", i + 1, line);
         }

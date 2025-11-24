@@ -10,6 +10,8 @@ use libc::{close, dup2};
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::Pid;
 use nix::unistd::{fork, pipe, ForkResult};
+use rustyline::history::FileHistory;
+use rustyline::Editor;
 use std::fs::{File, OpenOptions};
 use std::io::Error;
 use std::io::{self, Write};
@@ -64,7 +66,7 @@ fn match_std(std: &StreamTarget, target_fd: i32) -> Result<Option<FdRedirectGuar
 
 fn run_builtin_cmd(cmd: &SimpleCmd) {}
 
-fn run_simplecmd(state: &mut ShellState, cmd: &SimpleCmd) {
+fn run_simplecmd(state: &mut Editor<(), FileHistory>, cmd: &SimpleCmd) {
     let args = &cmd.args;
     let stdout = &cmd.stdout;
     let stderr = &cmd.stderr;
@@ -106,14 +108,14 @@ fn main() {
 
                 let config = parse_pipeline(&tokenize(input.trim()));
                 if config.len() <= 1 {
-                    run_simplecmd(&mut state, &config[0]);
+                    run_simplecmd(&mut rl, &config[0]);
                     continue;
                 }
 
                 let mut it = config.iter();
                 let cmd1 = it.next().unwrap();
                 let cmd2 = it.next();
-                run_pipeline(&mut state, &mut it, cmd1, cmd2, None, Vec::new());
+                run_pipeline(&mut rl, &mut it, cmd1, cmd2, None, Vec::new());
             }
             Err(ReadlineError::Interrupted) => {
                 println!("^C");
@@ -132,37 +134,37 @@ fn main() {
 }
 
 // old main without rustyline
-fn main_old() {
-    let mut state = ShellState::new();
-    loop {
-        print!("$ ");
-        io::stdout().flush().unwrap();
-        let mut input = String::new();
-        match io::stdin().read_line(&mut input) {
-            Ok(1) => {
-                // one symbol entered (i.e. /n), so we print a new line and go to the next
-                // iteration
-                println!("");
-                continue;
-            }
-            _ => (),
-        }
-        state.history.push(input.trim().to_string());
-        let config = parse_pipeline(&tokenize(input.trim()));
-        if config.len() <= 1 {
-            run_simplecmd(&mut state, &config[0]);
-            continue;
-        }
-
-        let mut it = config.iter();
-        let cmd1 = it.next().unwrap();
-        let cmd2 = it.next();
-        run_pipeline(&mut state, &mut it, cmd1, cmd2, None, Vec::new());
-    }
-}
+// fn main_old() {
+//     let mut state = ShellState::new();
+//     loop {
+//         print!("$ ");
+//         io::stdout().flush().unwrap();
+//         let mut input = String::new();
+//         match io::stdin().read_line(&mut input) {
+//             Ok(1) => {
+//                 // one symbol entered (i.e. /n), so we print a new line and go to the next
+//                 // iteration
+//                 println!("");
+//                 continue;
+//             }
+//             _ => (),
+//         }
+//         state.history.push(input.trim().to_string());
+//         let config = parse_pipeline(&tokenize(input.trim()));
+//         if config.len() <= 1 {
+//             run_simplecmd(&mut state, &config[0]);
+//             continue;
+//         }
+//
+//         let mut it = config.iter();
+//         let cmd1 = it.next().unwrap();
+//         let cmd2 = it.next();
+//         run_pipeline(&mut state, &mut it, cmd1, cmd2, None, Vec::new());
+//     }
+// }
 
 fn run_pipeline(
-    mut state: &mut ShellState,
+    mut state: &mut Editor<(), FileHistory>,
     mut cmds: &mut Iter<'_, SimpleCmd>,
     cmd1: &SimpleCmd,
     cmd2: Option<&SimpleCmd>,

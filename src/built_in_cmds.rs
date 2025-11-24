@@ -57,6 +57,22 @@ pub fn history_cmd(state: &mut Editor<(), FileHistory>, args: &[String]) {
                         return;
                     }
                 }
+                "-w" => {
+                    if let Some(history_path) = args.next() {
+                        state.save_history(history_path);
+                        return;
+                    } else {
+                        return;
+                    }
+                }
+                "-a" => {
+                    if let Some(history_path) = args.next() {
+                        state.append_history(history_path);
+                        return;
+                    } else {
+                        return;
+                    }
+                }
                 _ => {
                     return;
                 }

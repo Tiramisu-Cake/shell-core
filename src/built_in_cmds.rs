@@ -7,6 +7,9 @@ use rustyline::Editor;
 use std::{
     env::{current_dir, set_current_dir},
     fs,
+    fs::File,
+    fs::OpenOptions,
+    io::Write,
     os::unix::fs::PermissionsExt,
     path::Path,
 };
@@ -59,7 +62,11 @@ pub fn history_cmd(state: &mut Editor<(), FileHistory>, args: &[String]) {
                 }
                 "-w" => {
                     if let Some(history_path) = args.next() {
-                        state.save_history(history_path);
+                        let history = state.history_mut().iter();
+                        let mut history_file = File::create(history_path).unwrap();
+                        for x in history {
+                            writeln!(history_file, "{}", x);
+                        }
                         return;
                     } else {
                         return;
@@ -67,7 +74,16 @@ pub fn history_cmd(state: &mut Editor<(), FileHistory>, args: &[String]) {
                 }
                 "-a" => {
                     if let Some(history_path) = args.next() {
-                        state.append_history(history_path);
+                        let history = state.history_mut().iter();
+                        let mut history_file = OpenOptions::new()
+                            .write(true)
+                            .create(true)
+                            .append(true)
+                            .open(history_path)
+                            .unwrap();
+                        for x in history {
+                            writeln!(history_file, "{}", x);
+                        }
                         return;
                     } else {
                         return;

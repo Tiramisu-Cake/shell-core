@@ -10,6 +10,7 @@ use libc::{close, dup2};
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::Pid;
 use nix::unistd::{fork, pipe, ForkResult};
+use rustyline::config::Configurer;
 use rustyline::history::FileHistory;
 use rustyline::Editor;
 use std::fs::{File, OpenOptions};
@@ -92,6 +93,7 @@ fn main() {
     let mut state = ShellState::new();
 
     let mut rl = DefaultEditor::new().expect("failed to create editor");
+    let _ = rl.set_history_ignore_dups(false);
 
     let history_path = ".shell_hst";
     let _ = rl.load_history(history_path);

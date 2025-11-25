@@ -6,10 +6,8 @@ use rustyline::history::{FileHistory, History};
 use rustyline::Editor;
 use std::{
     env::{current_dir, set_current_dir},
-    fs,
-    fs::File,
-    fs::OpenOptions,
-    io::Write,
+    fs::{self, File, OpenOptions},
+    io::{BufRead, BufReader, Write},
     os::unix::fs::PermissionsExt,
     path::Path,
 };
@@ -46,7 +44,7 @@ pub fn echo_cmd(args: &[String]) {
     println!("{}", args.join(" "));
     return;
 }
-pub fn history_cmd(state: &mut Editor<(), FileHistory>, args: &[String]) {
+pub fn history_cmd(state: &mut ShellState, args: &[String]) {
     let mut args = args.iter();
     let bound = match args.next() {
         Some(ref arg) => match arg.parse::<usize>() {
@@ -54,7 +52,7 @@ pub fn history_cmd(state: &mut Editor<(), FileHistory>, args: &[String]) {
             Err(_) => match arg.as_str() {
                 "-r" => {
                     if let Some(history_path) = args.next() {
-                        state.load_history(history_path);
+                        state.editor.load_history(history_path);
                         return;
                     } else {
                         return;
@@ -62,11 +60,12 @@ pub fn history_cmd(state: &mut Editor<(), FileHistory>, args: &[String]) {
                 }
                 "-w" => {
                     if let Some(history_path) = args.next() {
-                        let history = state.history_mut().iter();
+                        let history = state.editor.history_mut().iter();
                         let mut history_file = File::create(history_path).unwrap();
                         for x in history {
                             writeln!(history_file, "{}", x);
                         }
+                        state.history = state.editor.history().len();
                         return;
                     } else {
                         return;
@@ -74,16 +73,22 @@ pub fn history_cmd(state: &mut Editor<(), FileHistory>, args: &[String]) {
                 }
                 "-a" => {
                     if let Some(history_path) = args.next() {
-                        let history = state.history_mut().iter();
                         let mut history_file = OpenOptions::new()
                             .write(true)
-                            .create(true)
                             .append(true)
                             .open(history_path)
                             .unwrap();
-                        for x in history {
-                            writeln!(history_file, "{}", x);
+
+                        if state.history > 0 {
+                            for entry in state.editor.history().iter().skip(state.history) {
+                                writeln!(history_file, "{}", entry);
+                            }
+                        } else {
+                            for entry in state.editor.history().iter() {
+                                writeln!(history_file, "{}", entry);
+                            }
                         }
+                        state.history = state.editor.history().len();
                         return;
                     } else {
                         return;
@@ -95,15 +100,15 @@ pub fn history_cmd(state: &mut Editor<(), FileHistory>, args: &[String]) {
             },
         },
         None => {
-            for (i, line) in state.history().iter().enumerate() {
+            for (i, line) in state.editor.history().iter().enumerate() {
                 println!("  {} {}", i + 1, line);
             }
             return;
         }
     };
-    let size = state.history().len();
+    let size = state.editor.history().len();
 
-    for (i, line) in state.history().iter().enumerate() {
+    for (i, line) in state.editor.history().iter().enumerate() {
         if i >= size - bound {
             println!("  {} {}", i + 1, line);
         }

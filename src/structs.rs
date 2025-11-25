@@ -1,15 +1,20 @@
+use rustyline::DefaultEditor;
 use std::str;
+
+use rustyline::{history::FileHistory, Editor};
 
 use crate::parser::*;
 
 pub struct ShellState {
-    pub history: Vec<String>,
+    pub editor: Editor<(), FileHistory>,
+    pub history: usize,
 }
 
 impl ShellState {
     pub fn new() -> ShellState {
         ShellState {
-            history: Vec::new(),
+            editor: DefaultEditor::new().expect("failed to create editor"),
+            history: 0,
         }
     }
 }

@@ -67,7 +67,7 @@ fn match_std(std: &StreamTarget, target_fd: i32) -> Result<Option<FdRedirectGuar
 
 fn run_builtin_cmd(cmd: &SimpleCmd) {}
 
-fn run_simplecmd(state: &mut Editor<(), FileHistory>, cmd: &SimpleCmd) {
+fn run_simplecmd(state: &mut ShellState, cmd: &SimpleCmd) {
     let args = &cmd.args;
     let stdout = &cmd.stdout;
     let stderr = &cmd.stderr;
@@ -91,33 +91,30 @@ fn run_simplecmd(state: &mut Editor<(), FileHistory>, cmd: &SimpleCmd) {
 // current main with rustyline
 fn main() {
     let mut state = ShellState::new();
-
-    let mut rl = DefaultEditor::new().expect("failed to create editor");
-    let _ = rl.set_history_ignore_dups(false);
+    let _ = state.editor.set_history_ignore_dups(false);
 
     let history_path = ".shell_hst";
-    let _ = rl.load_history(history_path);
+    let _ = state.editor.load_history(history_path);
 
     loop {
-        let line = rl.readline("$ ");
+        let line = state.editor.readline("$ ");
         match line {
             Ok(input) => {
                 let trimmed = input.trim();
                 if !trimmed.is_empty() {
-                    rl.add_history_entry(trimmed);
-                    state.history.push(input.trim().to_string());
+                    state.editor.add_history_entry(trimmed);
                 }
 
                 let config = parse_pipeline(&tokenize(input.trim()));
                 if config.len() <= 1 {
-                    run_simplecmd(&mut rl, &config[0]);
+                    run_simplecmd(&mut state, &config[0]);
                     continue;
                 }
 
                 let mut it = config.iter();
                 let cmd1 = it.next().unwrap();
                 let cmd2 = it.next();
-                run_pipeline(&mut rl, &mut it, cmd1, cmd2, None, Vec::new());
+                run_pipeline(&mut state, &mut it, cmd1, cmd2, None, Vec::new());
             }
             Err(ReadlineError::Interrupted) => {
                 println!("^C");
@@ -166,7 +163,7 @@ fn main() {
 // }
 
 fn run_pipeline(
-    mut state: &mut Editor<(), FileHistory>,
+    mut state: &mut ShellState,
     mut cmds: &mut Iter<'_, SimpleCmd>,
     cmd1: &SimpleCmd,
     cmd2: Option<&SimpleCmd>,

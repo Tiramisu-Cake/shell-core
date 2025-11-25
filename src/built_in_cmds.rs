@@ -4,6 +4,8 @@ use crate::{
 };
 use rustyline::history::{FileHistory, History};
 use rustyline::Editor;
+use std::env;
+use std::process::exit;
 use std::{
     env::{current_dir, set_current_dir},
     fs::{self, File, OpenOptions},
@@ -34,6 +36,28 @@ pub fn get_executable_file(cmd: &str) -> String {
         };
     }
     return "".to_string();
+}
+
+pub fn exit_cmd(state: &mut ShellState, args: &[String]) {
+    if let Ok(hist_path) = env::var("HISTFILE") {
+        let mut history_file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(hist_path)
+            .unwrap();
+
+        if state.history > 0 {
+            for entry in state.editor.history().iter().skip(state.history) {
+                writeln!(history_file, "{}", entry);
+            }
+        } else {
+            for entry in state.editor.history().iter() {
+                writeln!(history_file, "{}", entry);
+            }
+        }
+        state.history = state.editor.history().len();
+    }
+    exit(args[0].parse().unwrap());
 }
 
 pub fn echo_cmd(args: &[String]) {

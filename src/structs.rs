@@ -58,7 +58,7 @@ impl MyHelper {
                         Err(_) => continue,
                     };
                     if let Some(name) = entry.file_name().to_str() {
-                        ext_cmds.push(name.to_string());
+                        ext_cmds.push(name.to_string() + " ");
                     }
                 }
             }

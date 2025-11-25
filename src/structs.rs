@@ -1,4 +1,5 @@
 use rustyline::completion::Completer;
+use rustyline::completion::Pair;
 use rustyline::CompletionType;
 use rustyline::Context;
 use rustyline::Helper;
@@ -16,7 +17,7 @@ use rustyline::{history::FileHistory, Editor};
 
 use crate::parser::*;
 
-const BUILTINS: &[&str] = &["cd ", "echo ", "exit ", "type ", "pwd ", "history "];
+const BUILTINS: &[&str] = &["cd", "echo", "exit", "type", "pwd", "history"];
 
 pub struct ShellState {
     pub editor: Editor<MyHelper, FileHistory>,
@@ -59,7 +60,7 @@ impl MyHelper {
                         Err(_) => continue,
                     };
                     if let Some(name) = entry.file_name().to_str() {
-                        ext_cmds.push(name.to_string() + " ");
+                        ext_cmds.push(name.to_string());
                     }
                 }
             }
@@ -71,7 +72,7 @@ impl MyHelper {
     }
 }
 impl Completer for MyHelper {
-    type Candidate = String;
+    type Candidate = Pair;
 
     fn complete(
         &self,
@@ -95,13 +96,21 @@ impl Completer for MyHelper {
         let mut matches = Vec::new();
         for cmd in &self.builtin_cmds {
             if cmd.starts_with(prefix) {
-                matches.push(cmd.clone());
+                let pair = Pair {
+                    display: cmd.clone(),
+                    replacement: format!("{} ", cmd),
+                };
+                matches.push(pair);
             }
         }
 
         for cmd in &self.ext_cmds {
             if cmd.starts_with(prefix) {
-                matches.push(cmd.clone());
+                let pair = Pair {
+                    display: cmd.clone(),
+                    replacement: format!("{} ", cmd),
+                };
+                matches.push(pair);
             }
         }
 

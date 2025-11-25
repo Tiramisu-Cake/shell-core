@@ -1,4 +1,5 @@
 use rustyline::completion::Completer;
+use rustyline::line_buffer::LineBuffer;
 use rustyline::Completer;
 use rustyline::Context;
 use rustyline::DefaultEditor;
@@ -36,7 +37,7 @@ pub struct MyHelper {
 impl MyHelper {
     pub fn new() -> MyHelper {
         MyHelper {
-            builtin_cmds: vec!["cd", "echo", "exit", "type", "pwd", "history"],
+            builtin_cmds: vec!["cd ", "echo ", "exit ", "type ", "pwd ", "history "],
         }
     }
 }
@@ -71,6 +72,29 @@ impl Completer for MyHelper {
 
         Ok((start, matches))
     }
+
+    // fn update(&self, line: &mut LineBuffer, start: usize, elected: &str) {
+    //     // Текущая позиция курсора = конец заменяемого фрагмента
+    //     let end = line.pos();
+    //
+    //     // 1) удаляем диапазон [start..end)
+    //     //    если start == end (префикс пустой) — ничего не удалится
+    //     line.delete_range(start..end);
+    //
+    //     // 2) вставляем выбранный автокомплит
+    //     line.insert_str(start, elected);
+    //
+    //     // 3) двигаем курсор в конец вставленного кандидата
+    //     line.set_pos(start + elected.len());
+    //
+    //     // 4) если это ПЕРВОЕ слово -> добавляем пробел
+    //     if start == 0 {
+    //         line.insert(' ');
+    //
+    //         // 5) и двигаем курсор вперёд, чтобы он был после пробела
+    //         line.set_pos(start + elected.len() + 1);
+    //     }
+    // }
 }
 
 pub struct Config {

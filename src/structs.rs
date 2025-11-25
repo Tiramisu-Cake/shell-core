@@ -1,8 +1,6 @@
 use rustyline::completion::Completer;
-use rustyline::line_buffer::LineBuffer;
-use rustyline::Completer;
+use rustyline::CompletionType;
 use rustyline::Context;
-use rustyline::DefaultEditor;
 use rustyline::Helper;
 use rustyline::Highlighter;
 use rustyline::Hinter;
@@ -12,7 +10,6 @@ use std::path::PathBuf;
 
 use std::env;
 use std::fs;
-use std::os::linux::raw;
 use std::str;
 
 use rustyline::{history::FileHistory, Editor};
@@ -29,7 +26,11 @@ pub struct ShellState {
 impl ShellState {
     pub fn new() -> ShellState {
         let helper = MyHelper::new();
-        let mut editor = Editor::<MyHelper, FileHistory>::new().expect("failed to create editor");
+        let config = rustyline::Config::builder()
+            .completion_type(CompletionType::List)
+            .build();
+        let mut editor =
+            Editor::<MyHelper, FileHistory>::with_config(config).expect("failed to create editor");
         editor.set_helper(Some(helper));
 
         ShellState { editor, history: 0 }

@@ -13,6 +13,7 @@ use nix::unistd::{fork, pipe, ForkResult};
 use rustyline::config::Configurer;
 use rustyline::history::FileHistory;
 use rustyline::Editor;
+use std::env;
 use std::fs::{File, OpenOptions};
 use std::io::Error;
 use std::io::{self, Write};
@@ -93,8 +94,9 @@ fn main() {
     let mut state = ShellState::new();
     let _ = state.editor.set_history_ignore_dups(false);
 
-    let history_path = ".shell_hst";
-    let _ = state.editor.load_history(history_path);
+    if let Ok(hist_path) = env::var("HISTFILE") {
+        let _ = state.editor.load_history(&hist_path);
+    }
 
     loop {
         let line = state.editor.readline("$ ");

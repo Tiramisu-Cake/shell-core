@@ -8,12 +8,18 @@ use rustyline::Highlighter;
 use rustyline::Hinter;
 use rustyline::Result as RlResult;
 use rustyline::Validator;
+use std::path::PathBuf;
 
+use std::env;
+use std::fs;
+use std::os::linux::raw;
 use std::str;
 
 use rustyline::{history::FileHistory, Editor};
 
 use crate::parser::*;
+
+const BUILTINS: &[&str] = &["cd ", "echo ", "exit ", "type ", "pwd ", "history "];
 
 pub struct ShellState {
     pub editor: Editor<MyHelper, FileHistory>,
@@ -32,17 +38,39 @@ impl ShellState {
 
 #[derive(Helper, Hinter, Highlighter, Validator)]
 pub struct MyHelper {
-    builtin_cmds: Vec<&'static str>,
+    builtin_cmds: Vec<String>,
+    ext_cmds: Vec<String>,
 }
 impl MyHelper {
     pub fn new() -> MyHelper {
+        let mut ext_cmds = Vec::new();
+        if let Ok(raw) = env::var("PATH") {
+            let paths: Vec<PathBuf> = env::split_paths(&raw).collect();
+            for dir in paths {
+                let entries = match fs::read_dir(&dir) {
+                    Ok(it) => it,
+                    Err(_) => continue,
+                };
+
+                for entry_res in entries {
+                    let entry = match entry_res {
+                        Ok(x) => x,
+                        Err(_) => continue,
+                    };
+                    if let Some(name) = entry.file_name().to_str() {
+                        ext_cmds.push(name.to_string());
+                    }
+                }
+            }
+        }
         MyHelper {
-            builtin_cmds: vec!["cd ", "echo ", "exit ", "type ", "pwd ", "history "],
+            builtin_cmds: BUILTINS.iter().map(|s| s.to_string()).collect(),
+            ext_cmds,
         }
     }
 }
 impl Completer for MyHelper {
-    type Candidate = &'static str;
+    type Candidate = String;
 
     fn complete(
         &self,
@@ -64,9 +92,15 @@ impl Completer for MyHelper {
 
         // Фильтруем встроенные команды по префиксу
         let mut matches = Vec::new();
-        for &cmd in &self.builtin_cmds {
+        for cmd in &self.builtin_cmds {
             if cmd.starts_with(prefix) {
-                matches.push(cmd);
+                matches.push(cmd.clone());
+            }
+        }
+
+        for cmd in &self.ext_cmds {
+            if cmd.starts_with(prefix) {
+                matches.push(cmd.clone());
             }
         }
 

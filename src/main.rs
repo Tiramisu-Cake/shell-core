@@ -12,6 +12,7 @@ use nix::unistd::Pid;
 use nix::unistd::{fork, pipe, ForkResult};
 use rustyline::config::Configurer;
 use rustyline::history::FileHistory;
+use rustyline::history::History;
 use rustyline::Editor;
 use std::env;
 use std::fs::{File, OpenOptions};
@@ -99,6 +100,7 @@ fn main() {
 
     if let Ok(hist_path) = env::var("HISTFILE") {
         let _ = state.editor.load_history(&hist_path);
+        state.history = state.editor.history().len();
     }
 
     loop {

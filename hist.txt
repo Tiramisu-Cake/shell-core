@@ -1,0 +1,3 @@
+echo hui
+echo zalupa
+exit

@@ -41,6 +41,7 @@ pub fn get_executable_file(cmd: &str) -> String {
 pub fn exit_cmd(state: &mut ShellState, args: &[String]) {
     if let Ok(hist_path) = env::var("HISTFILE") {
         let mut history_file = OpenOptions::new()
+            .create(true)
             .write(true)
             .append(true)
             .open(hist_path)
@@ -57,7 +58,6 @@ pub fn exit_cmd(state: &mut ShellState, args: &[String]) {
         }
         state.history = state.editor.history().len();
     }
-    exit(args[0].parse().unwrap());
 }
 
 pub fn echo_cmd(args: &[String]) {

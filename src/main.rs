@@ -82,7 +82,10 @@ fn run_simplecmd(state: &mut ShellState, cmd: &SimpleCmd) {
         "cd" => cd_cmd(&args[1..]),
         "echo" => echo_cmd(&args[1..]),
         "type" => type_cmd(&args[1..]),
-        "exit" => exit(0),
+        "exit" => {
+            exit_cmd(state, &args[1..]);
+            exit(0);
+        }
         "pwd" => pwd_cmd(&args[1..]),
         "history" => history_cmd(state, &args[1..]),
         _ => execute(&args),

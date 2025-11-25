@@ -15,6 +15,7 @@ use std::str;
 
 use rustyline::{history::FileHistory, Editor};
 
+use crate::built_in_cmds;
 use crate::parser::*;
 
 const BUILTINS: &[&str] = &["cd", "echo", "exit", "type", "pwd", "history"];
@@ -65,8 +66,11 @@ impl MyHelper {
                 }
             }
         }
+        ext_cmds.sort();
+        let mut builtin_cmds: Vec<String> = BUILTINS.iter().map(|s| s.to_string()).collect();
+        builtin_cmds.sort();
         MyHelper {
-            builtin_cmds: BUILTINS.iter().map(|s| s.to_string()).collect(),
+            builtin_cmds,
             ext_cmds,
         }
     }

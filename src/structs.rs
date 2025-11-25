@@ -1,4 +1,13 @@
+use rustyline::completion::Completer;
+use rustyline::Completer;
+use rustyline::Context;
 use rustyline::DefaultEditor;
+use rustyline::Helper;
+use rustyline::Highlighter;
+use rustyline::Hinter;
+use rustyline::Result as RlResult;
+use rustyline::Validator;
+
 use std::str;
 
 use rustyline::{history::FileHistory, Editor};
@@ -6,21 +15,62 @@ use rustyline::{history::FileHistory, Editor};
 use crate::parser::*;
 
 pub struct ShellState {
-    pub editor: Editor<(), FileHistory>,
+    pub editor: Editor<MyHelper, FileHistory>,
     pub history: usize,
 }
 
 impl ShellState {
     pub fn new() -> ShellState {
-        ShellState {
-            editor: DefaultEditor::new().expect("failed to create editor"),
-            history: 0,
-        }
+        let helper = MyHelper::new();
+        let mut editor = Editor::<MyHelper, FileHistory>::new().expect("failed to create editor");
+        editor.set_helper(Some(helper));
+
+        ShellState { editor, history: 0 }
     }
 }
 
-enum ShellEffect {
-    AddHistory,
+#[derive(Helper, Hinter, Highlighter, Validator)]
+pub struct MyHelper {
+    builtin_cmds: Vec<&'static str>,
+}
+impl MyHelper {
+    pub fn new() -> MyHelper {
+        MyHelper {
+            builtin_cmds: vec!["cd", "echo", "exit", "type", "pwd", "history"],
+        }
+    }
+}
+impl Completer for MyHelper {
+    type Candidate = &'static str;
+
+    fn complete(
+        &self,
+        line: &str,
+        pos: usize,
+        _ctx: &Context<'_>,
+    ) -> RlResult<(usize, Vec<Self::Candidate>)> {
+        // Берём всё до курсора
+        let before_cursor = &line[..pos];
+
+        // Очень простой вариант: считаем, что дополняем первое слово до первого пробела.
+        // Смотрим на "текущий токен" слева от курсора.
+        let start = before_cursor
+            .rfind(char::is_whitespace) // ищем последний пробел/таб и т.п.
+            .map(|idx| idx + 1) // начинаем после него
+            .unwrap_or(0); // если пробелов нет — с начала строки
+
+        let prefix = &before_cursor[start..];
+
+        // Фильтруем встроенные команды по префиксу
+        let mut matches = Vec::new();
+        for &cmd in &self.builtin_cmds {
+            if cmd.starts_with(prefix) {
+                matches.push(cmd);
+            }
+        }
+
+        Ok((start, matches))
+    }
 }
 
 pub struct Config {

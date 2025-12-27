@@ -66,7 +66,7 @@ pub fn history_cmd(state: &mut ShellState, args: &[String]) -> i32 {
     let skip = size.saturating_sub(bound);
 
     for (i, line) in state.editor.history().iter().skip(skip).enumerate() {
-        println!("  {} {}", i + 1, line);
+        println!("  {} {}", skip + i + 1, line);
     }
     return 0;
 }

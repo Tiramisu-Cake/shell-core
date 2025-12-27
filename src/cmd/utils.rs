@@ -6,6 +6,7 @@ use std::fs::OpenOptions;
 use std::io::{Error, Write};
 use std::os::fd::AsRawFd;
 use std::os::unix::fs::PermissionsExt;
+use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::{Command, ExitStatus};
 use std::{env, io};
@@ -19,7 +20,7 @@ pub fn execute(args: &[String]) -> i32 {
         println!("{}: command not found", cmd);
         return 1;
     };
-    match Command::new(&file).args(args).status() {
+    match Command::new(&file).arg0(cmd).args(args).status() {
         Ok(status) => match status.code() {
             Some(code) => return code,
             None => return 2,

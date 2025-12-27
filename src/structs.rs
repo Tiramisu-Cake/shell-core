@@ -15,7 +15,6 @@ use std::str;
 
 use rustyline::{history::FileHistory, Editor};
 
-use crate::built_in_cmds;
 use crate::parser::*;
 
 const BUILTINS: &[&str] = &["cd", "echo", "exit", "type", "pwd", "history"];
@@ -39,6 +38,7 @@ impl ShellState {
     }
 }
 
+// helper for rustyline editor
 #[derive(Helper, Hinter, Highlighter, Validator)]
 pub struct MyHelper {
     builtin_cmds: Vec<String>,
@@ -120,46 +120,11 @@ impl Completer for MyHelper {
 
         Ok((start, matches))
     }
-
-    // fn update(&self, line: &mut LineBuffer, start: usize, elected: &str) {
-    //     // Текущая позиция курсора = конец заменяемого фрагмента
-    //     let end = line.pos();
-    //
-    //     // 1) удаляем диапазон [start..end)
-    //     //    если start == end (префикс пустой) — ничего не удалится
-    //     line.delete_range(start..end);
-    //
-    //     // 2) вставляем выбранный автокомплит
-    //     line.insert_str(start, elected);
-    //
-    //     // 3) двигаем курсор в конец вставленного кандидата
-    //     line.set_pos(start + elected.len());
-    //
-    //     // 4) если это ПЕРВОЕ слово -> добавляем пробел
-    //     if start == 0 {
-    //         line.insert(' ');
-    //
-    //         // 5) и двигаем курсор вперёд, чтобы он был после пробела
-    //         line.set_pos(start + elected.len() + 1);
-    //     }
-    // }
 }
 
 pub struct Config {
     pub cmd: Vec<String>,
-    /*
-    pub cmd: String,
-    pub args: Vec<String>,
-    */
 }
-
-// impl Config {
-//     pub fn build(input: String) -> Config {
-//         let cmd = tokenize(input.trim());
-//
-//         Config { cmd }
-//     }
-// }
 
 pub struct AST {
     pub op: Node,
@@ -173,11 +138,6 @@ pub enum Node {
     Group,
 }
 
-// pub enum Stream {
-//     Stdout,
-//     Stderr,
-// }
-
 #[derive(Debug)]
 pub struct TargetFile {
     pub path: String,
@@ -189,20 +149,6 @@ pub enum StreamTarget {
     Terminal,
     File(TargetFile),
 }
-
-// pub struct Redirect {
-//     pub redir_type: Stream,
-//     pub redir_target: StreamTarget,
-// }
-//
-// impl Default for Redirect {
-//     fn default() -> Self {
-//         Redirect {
-//             redir_type: Stream::Stdout,
-//             redir_target: StreamTarget::Terminal,
-//         }
-//     }
-// }
 
 #[derive(Debug)]
 pub struct SimpleCmd {
@@ -231,6 +177,3 @@ pub enum OpKind {
     RedirErrAppend,
     Pipeline,
 }
-// impl Token {
-//     pub fn is_word(&self) -> bool
-// }

@@ -172,12 +172,16 @@ pub fn cd_cmd(args: &[String]) -> i32 {
             }
         }
     }
-    let cd = set_current_dir(&path);
-    match cd {
-        Ok(()) => return 0,
-        Err(e) => {
-            eprintln!("cd: {path}: {e}");
-            return 1;
-        }
+    if let Err(e) = set_current_dir(&path) {
+        let msg = match e.kind() {
+            std::io::ErrorKind::NotFound => "No such file or directory",
+            std::io::ErrorKind::PermissionDenied => "Permission denied",
+            _ => "Error",
+        };
+
+        eprintln!("cd: {}: {}", path, msg);
+        return 1;
     }
+
+    0
 }

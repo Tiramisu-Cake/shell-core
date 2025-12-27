@@ -7,7 +7,7 @@ use libc::STDOUT_FILENO;
 use libc::{close, dup2};
 use nix::sys::wait::waitpid;
 use nix::unistd::Pid;
-use nix::unistd::{fork, pipe, ForkResult};
+use nix::unistd::{ForkResult, fork, pipe};
 use std::os::fd::IntoRawFd;
 use std::process::exit;
 use std::slice::Iter;
@@ -22,20 +22,20 @@ pub fn run_simplecmd(state: &mut ShellState, cmd: &SimpleCmd) -> i32 {
 
     let cmd = &args[0];
 
-    match match_std(stdout, 1) {
-        Ok(_) => (),
+    let _stdout_guard = match match_std(stdout, 1) {
+        Ok(g) => g,
         Err(e) => {
-            println!("path: {e}");
+            eprintln!("path: {e}");
             return 1;
         }
-    }
-    match match_std(stderr, 2) {
-        Ok(_) => (),
+    };
+    let _stderr_guard = match match_std(stderr, 2) {
+        Ok(g) => g,
         Err(e) => {
-            println!("path: {e}");
+            eprintln!("path: {e}");
             return 1;
         }
-    }
+    };
 
     match cmd.as_str() {
         "cd" => cd_cmd(&args[1..]),

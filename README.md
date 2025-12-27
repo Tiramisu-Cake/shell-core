@@ -1,10 +1,13 @@
- Minimal Unix Shell (Rust)
+## Unix Shell (Core Features) — Rust
 
-This repository contains a small Unix shell implementation written in Rust.
+This repository contains a Unix shell implementation written in Rust.
+
+The project focuses on the core execution model of a Unix shell, including
+command parsing, process execution, pipelines, I/O redirection, and basic
+environment handling.
 
 The project was built as part of the  
 [Codecrafters “Build Your Own Shell” challenge](https://app.codecrafters.io/courses/shell/overview)  
-and focuses on implementing the core mechanics of how a Unix shell executes commands.
 
 ---
 
